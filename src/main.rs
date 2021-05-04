@@ -1,6 +1,8 @@
+use std::env;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{stdin, stdout, Result, SeekFrom, Write};
+use std::io::{stdin, stdout, Result, SeekFrom, Stdout, Write};
+use std::process;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -17,7 +19,7 @@ struct HexReader {
     index: u64,
     file_length: u64,
     buffer: Vec<u8>,
-    stdout: RawTerminal<std::io::Stdout>,
+    stdout: RawTerminal<Stdout>,
 }
 
 impl Hex for HexReader {
@@ -50,7 +52,13 @@ impl Hex for HexReader {
                 printable_hex = String::from(printable_hex + " ");
             }
             if index % 8 == 0 {
-                write!(self.stdout, "{}{} ", printable_hex, termion::cursor::Goto(1, line)).unwrap();
+                write!(
+                    self.stdout,
+                    "{}{} ",
+                    printable_hex,
+                    termion::cursor::Goto(1, line)
+                )
+                .unwrap();
                 line += 1;
             } else {
                 write!(self.stdout, "{} ", printable_hex).unwrap();
@@ -62,7 +70,16 @@ impl Hex for HexReader {
 }
 
 fn main() -> Result<()> {
-    let mut file = File::open("file.png")?;
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() <= 1 {
+        eprintln!("Error: Please include a file");
+        process::exit(0);
+    }
+
+    let filename = &args[1];
+
+    let mut file = File::open(filename)?;
 
     let stdin = stdin();
     let stdout = stdout().into_raw_mode().unwrap();
