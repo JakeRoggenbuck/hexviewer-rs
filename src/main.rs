@@ -12,8 +12,8 @@ trait Hex {
     fn down(&mut self);
     fn up(&mut self);
     fn read_hex(&mut self, file: &mut File) -> Result<()>;
-    fn print(&mut self);
     fn clear(&mut self);
+    fn print(&mut self);
 }
 
 struct HexReader {
@@ -26,13 +26,13 @@ struct HexReader {
 impl Hex for HexReader {
     fn down(&mut self) {
         if self.index < self.file_length - 16 {
-            self.index += 16;
+            self.index += 32;
         }
     }
 
     fn up(&mut self) {
-        if self.index > 16 {
-            self.index -= 16;
+        if self.index > 0 {
+            self.index -= 32;
         }
     }
 
@@ -60,9 +60,13 @@ impl Hex for HexReader {
         for x in &self.buffer {
             let mut printable_hex: String = format!("{:X?}", x);
             if printable_hex.len() == 1 {
-                printable_hex = String::from(printable_hex + " ");
+                printable_hex = String::from("0".to_owned() + &printable_hex);
             }
-            if index % 8 == 0 {
+
+            if (index - 1) % 8 == 0 {
+                print!("\t");
+            }
+            if index % 16 == 0 {
                 write!(
                     self.stdout,
                     "{}{} ",
@@ -80,7 +84,7 @@ impl Hex for HexReader {
     }
 }
 
-fn main() -> Result<()> {
+fn parse_args() -> String {
     let args: Vec<String> = env::args().collect();
 
     if args.len() <= 1 {
@@ -89,7 +93,8 @@ fn main() -> Result<()> {
     }
 
     if &args[1] == "--help" || &args[1] == "-h" {
-        println!("
+        println!(
+            "
         HexViewer -- 0.1
         ----------------
 
@@ -97,12 +102,22 @@ fn main() -> Result<()> {
 
         -h, --help      Display this page and exit
         -v, --version   Display the version and exit
-        ");
+        "
+        );
+        process::exit(0);
+    }
+
+    if &args[1] == "--version" || &args[1] == "-v" {
+        println!("Version: 0.1");
         process::exit(0);
     }
 
     let filename = &args[1];
+    return filename.to_string();
+}
 
+fn main() -> Result<()> {
+    let filename = parse_args();
     let mut file = File::open(filename)?;
 
     let stdin = stdin();
@@ -132,6 +147,7 @@ fn main() -> Result<()> {
                 hex_reader.read_hex(&mut file)?;
             }
             Key::Char('q') => break,
+            Key::Ctrl('c') => break,
             _ => continue,
         }
     }
