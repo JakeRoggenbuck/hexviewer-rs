@@ -13,6 +13,7 @@ trait Hex {
     fn up(&mut self);
     fn read_hex(&mut self, file: &mut File) -> Result<()>;
     fn print(&mut self);
+    fn clear(&mut self);
 }
 
 struct HexReader {
@@ -41,6 +42,16 @@ impl Hex for HexReader {
         file.take(400).read_to_end(&mut self.buffer)?;
         self.print();
         Ok(())
+    }
+
+    fn clear(&mut self) {
+        write!(
+            self.stdout,
+            "{}{}",
+            termion::cursor::Goto(1, 1),
+            termion::clear::All
+        )
+        .unwrap();
     }
 
     fn print(&mut self) {
@@ -77,6 +88,19 @@ fn main() -> Result<()> {
         process::exit(0);
     }
 
+    if &args[1] == "--help" || &args[1] == "-h" {
+        println!("
+        HexViewer -- 0.1
+        ----------------
+
+        Usage: hexv [OPTION]... [FILE]...
+
+        -h, --help      Display this page and exit
+        -v, --version   Display the version and exit
+        ");
+        process::exit(0);
+    }
+
     let filename = &args[1];
 
     let mut file = File::open(filename)?;
@@ -92,15 +116,11 @@ fn main() -> Result<()> {
     };
 
     hex_reader.stdout.flush().unwrap();
+    hex_reader.clear();
+    hex_reader.read_hex(&mut file)?;
 
     for c in stdin.keys() {
-        write!(
-            hex_reader.stdout,
-            "{}{}",
-            termion::cursor::Goto(1, 1),
-            termion::clear::All
-        )
-        .unwrap();
+        hex_reader.clear();
 
         match c.unwrap() {
             Key::Char('j') => {
