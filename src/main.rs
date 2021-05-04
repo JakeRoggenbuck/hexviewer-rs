@@ -1,18 +1,20 @@
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
-use std::io::SeekFrom;
+use std::io::{stdin, stdout, Result, SeekFrom, Write};
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
 
 trait Hex {
     fn down(&mut self);
     fn up(&mut self);
-    fn read_hex(&mut self, file: &mut File) -> io::Result<()>;
+    fn read_hex(&mut self, file: &mut File) -> Result<()>;
 }
 
 struct HexReader {
     index: u64,
     file_length: u64,
-    buffer: Vec::<u8>,
+    buffer: Vec<u8>,
 }
 
 impl Hex for HexReader {
@@ -28,16 +30,17 @@ impl Hex for HexReader {
         }
     }
 
-    fn read_hex(&mut self, file: &mut File) -> io::Result<()> {
+    fn read_hex(&mut self, file: &mut File) -> Result<()> {
+        self.buffer = Vec::new();
         file.seek(SeekFrom::Start(self.index))?;
-        file.take(80).read_to_end(&mut self.buffer)?;
+        file.take(16).read_to_end(&mut self.buffer)?;
         println!("{:X?}", self.buffer);
         Ok(())
     }
 }
 
-fn main() -> io::Result<()> {
-    let mut file = File::open("file.txt")?;
+fn main() -> Result<()> {
+    let mut file = File::open("file.png")?;
 
     let mut hex_reader = HexReader {
         index: 0,
@@ -45,8 +48,33 @@ fn main() -> io::Result<()> {
         buffer: Vec::new(),
     };
 
-    hex_reader.read_hex(&mut file)?;
-    hex_reader.up();
-    hex_reader.read_hex(&mut file)?;
+    let stdin = stdin();
+    let mut stdout = stdout().into_raw_mode().unwrap();
+
+    stdout.flush().unwrap();
+
+    for c in stdin.keys() {
+        write!(
+            stdout,
+            "{}{}",
+            termion::cursor::Goto(1, 1),
+            termion::clear::All
+        )
+        .unwrap();
+
+        match c.unwrap() {
+            Key::Char('j') => {
+                hex_reader.down();
+                hex_reader.read_hex(&mut file)?;
+            }
+            Key::Char('k') => {
+                hex_reader.up();
+                hex_reader.read_hex(&mut file)?;
+            }
+            Key::Char('q') => break,
+            _ => continue,
+        }
+    }
+
     Ok(())
 }
