@@ -4,6 +4,6 @@ Hexviewer allows you to quickly view the hex representation of a file with vim s
 
 # Install
 ```sh
-# In the root dir (hexviewer-rs) run the following
-cargo install --path .
+git clone https://github.com/JakeRoggenbuck/hexviewer-rs
+cargo install --path hexviewer-rs
 ```
